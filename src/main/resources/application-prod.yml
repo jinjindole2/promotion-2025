@@ -1,0 +1,154 @@
+spring:
+  profiles:
+    active: prod
+  application:
+    name: jinpro-test
+
+  # Database Configuration
+  r2dbc:
+    url: r2dbc:pool:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:jinpro}?useSSL=true&requireSSL=false&serverTimezone=Asia/Seoul
+    username: ${DB_USERNAME:jinpro}
+    password: ${DB_PASSWORD:jinpro_2024!}
+    pool:
+      enabled: true
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 30m
+      validation-query: SELECT 1
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      uri: mongodb://${MONGO_USERNAME:jinpro_admin}:${MONGO_PASSWORD:jinpro_mongo_2024!}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DATABASE:jinpro}?authSource=admin
+      auto-index-creation: false # 운영에서는 false로 설정
+
+    # Redis Configuration
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:jinpro_redis_2024!}
+      database: 0
+      timeout: 60000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: -1ms
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 5
+      buffer-memory: 33554432
+      compression-type: snappy
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:jinpro-promotion-service}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      enable-auto-commit: false
+      max-poll-records: 100
+    listener:
+      ack-mode: manual_immediate
+      concurrency: 3
+      poll-timeout: 10s
+    properties:
+      spring.json.trusted.packages: "*"
+      max.poll.interval.ms: 300000
+      session.timeout.ms: 30000
+
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080}
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/.well-known/jwks.json}
+
+server:
+  port: ${SERVER_PORT:8080}
+  tomcat:
+    max-threads: 200
+    min-spare-threads: 10
+    max-connections: 8192
+    accept-count: 100
+    connection-timeout: 20000
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: 0.1
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.jinjindole2.jinpro: INFO
+    org.springframework.r2dbc: WARN
+    io.r2dbc.postgresql: WARN
+    reactor.netty: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ./logs/jinpro-test.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 3GB
+
+# Custom Application Configuration
+app:
+  security:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,https://your-domain.com}
+      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+      allowed-headers: "*"
+      allow-credentials: true
+      max-age: 3600
+  
+  promotion:
+    cache:
+      ttl: 300s # 5분
+      stock-ttl: 60s # 1분
+
+    rate-limit:
+      requests-per-minute: 100
+      burst-capacity: 150
+
+  monitoring:
+    metrics:
+      enabled: true
+    tracing:
+      enabled: ${ENABLE_TRACING:false}
+      zipkin:
+        base-url: ${ZIPKIN_BASE_URL:http://localhost:9411}

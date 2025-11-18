@@ -1,0 +1,12 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!--<pattern>%d{yyyy-MM-dd HH:mm:ss}|%highlight(%-5level)|%X{txid:-}|%green(%t)|%blue(%logger{36})|%X{requestId}| %msg%n%ex{full}%n</pattern>-->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss}|%highlight(%-5level)|%X{traceId:-NO-TRACE}|%X{eventType:-}|%X{eventId:-}|%X{txid:-}|%green(%t)|%blue(%logger{36})|%X{requestId}|%msg%n%ex{full}%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

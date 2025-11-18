@@ -1,0 +1,95 @@
+# yml 을 활용하면, 프로파일을 테스트, 상용으로 따로 만들필요 없이, 메인 부분에서 프로파일별로 나눠서 상속받아서 사용이 가능함.
+#spring:
+#  profiles:
+#    active: stress
+
+---
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: jinpro-test
+  r2dbc:
+    url: r2dbc:pool:mysql://localhost:3306/jinpro
+    username: jinpro
+    password: 1234
+    #initialize-schema: always
+    #schema: classpath:schema.sql
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db-init/schema.sql
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      password:
+      #password:
+
+    mongodb:
+      uri: mongodb://localhost:27017/jinpro?replicaSet=rs0&retryWrites=true&w=majority
+      #uri: mongodb://localhost:27017/jinpro  # standalone (트랜잭션 미지원)
+      auto-index-creation: true # primary 에만 적용됨. 그 후 세컨더리에도 자동 복제됨.
+#      bulkWrite에서 retryWrites=false로 해야 하는 이유
+#      트랜잭션 + 재시도 전략 예외사항
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: default
+      auto-offset-reset: earliest
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      #fetch-max-wait: 5s
+    listener:
+      immediate-stop: false
+      poll-timeout: 10s
+    properties:
+      spring.json.trusted.packages: "*"
+
+
+logging:
+  level:
+    io.r2dbc.spi: DEBUG
+    io.r2dbc.postgresql: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    org.mongodb.driver.protocol.command: TRACE
+    org.mongodb.driver: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS}|%highlight(%-5level)|%X{txid:-}|%green(%t)|%logger|%blue(\\(%F:%L\\))|%msg%n"
+
+
+
+---
+#spring:
+#  config:
+#    activate:
+#      on-profile: test
+#  r2dbc:
+#    url: r2dbc:pool:h2:mem://localhost/jinpro
+#  sql:
+#    init:
+#      mode: embedded
+#  data:
+#    redis:
+#      host: localhost
+#      port: 6379
+#      database: 0
+#      password:
+
+
+---
+#spring:
+#  config:
+#    activate:
+#      on-profile: test
+#  r2dbc:
+#    url: r2dbc:pool:h2:mem://localhost/jinpro
+#  sql:
+#    init:
+#      mode: embedded

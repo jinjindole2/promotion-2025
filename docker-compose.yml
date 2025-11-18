@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  mysql:
+      image: mysql:8.0
+      volumes:
+        - ./db/conf.d:/etc/mysql/conf.d
+        - ./db/data:/var/lib/mysql
+        #- ./db/initdb.d/:/docker-entrypoint-initdb.d/
+      env_file: ./db/.env/
+      ports:
+        - "3306:3306"
+      environment:
+        - TZ=Asia/Seoul
+        - MYSQL_ROOT_PASSWORD=1234
+        - MYSQL_USER=jinpro
+        - MYSQL_PASSWORD=1234
+
+  redis:
+    image: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092, PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+#  mongo1:
+#    image: mongo:6.0
+#    container_name: mongo1
+#    ports:
+#      - "27017:27017"
+#    command: [ "mongod", "--replSet", "rs0", "--bind_ip_all" ]
+##    environment:
+##      #MONGO_INITDB_DATABASE: kakopay
+##      MONGO_INITDB_ROOT_USERNAME: jinpro
+##      MONGO_INITDB_ROOT_PASSWORD: 1234
+#    volumes:
+#      - ./data/mongo1:/data/db
+#    networks:
+#      - mongo-net
+#
+#  mongo2:
+#    image: mongo:6.0
+#    container_name: mongo2
+#    ports:
+#      - "27018:27017"
+#    command: [ "mongod", "--replSet", "rs0", "--bind_ip_all" ]
+##    environment:
+##      #MONGO_INITDB_DATABASE: kakopay
+##      MONGO_INITDB_ROOT_USERNAME: jinpro
+##      MONGO_INITDB_ROOT_PASSWORD: 1234
+#    volumes:
+#      - ./data/mongo2:/data/db
+#    networks:
+#      - mongo-net
+#
+#  mongo3:
+#    image: mongo:6.0
+#    container_name: mongo3
+#    ports:
+#      - "27019:27017"
+#    command: [ "mongod", "--replSet", "rs0", "--bind_ip_all" ]
+##    environment:
+##      #MONGO_INITDB_DATABASE: kakopay
+##      MONGO_INITDB_ROOT_USERNAME: jinpro
+##      MONGO_INITDB_ROOT_PASSWORD: 1234
+#    volumes:
+#      - ./data/mongo3:/data/db
+#    networks:
+#      - mongo-net
+#
+#  mongo-setup:
+#    image: mongo:6.0
+#    depends_on:
+#      - mongo1
+#      - mongo2
+#      - mongo3
+#    entrypoint: >
+#      bash -c "
+#        sleep 5;
+#        echo 'Configuring Replica Set...';
+#        mongosh --host mongo1 <<EOF
+#        rs.initiate({
+#          _id: 'rs0',
+#          members: [
+#            { _id: 0, host: 'mongo1:27017' },
+#            { _id: 1, host: 'mongo2:27017' },
+#            { _id: 2, host: 'mongo3:27017' }
+#          ]
+#        });
+#        EOF
+#      "
+#    networks:
+#      - mongo-net
+#
+#networks:
+#  mongo-net:
+#    driver: bridge
+
+  mongo:
+    image: mongo:6.0
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: jinpro
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:

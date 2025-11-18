@@ -1,0 +1,112 @@
+spring:
+  profiles:
+    active: dev
+  application:
+    name: jinpro-test-dev
+
+  # Database Configuration (Development)
+  r2dbc:
+    url: r2dbc:mysql://localhost:3306/jinpro?serverTimezone=Asia/Seoul
+    username: jinpro
+    password: 1234
+    pool:
+      enabled: true
+      initial-size: 5
+      max-size: 20
+      max-idle-time: 30m
+      validation-query: SELECT 1
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db-init/schema.sql
+
+  # MongoDB Configuration (Development)
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/jinpro
+      auto-index-creation: true
+
+    # Redis Configuration (Development)
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 60000ms
+
+  # Kafka Configuration (Development)
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: 1
+      retries: 3
+    consumer:
+      group-id: jinpro-promotion-service-dev
+      auto-offset-reset: earliest
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+    listener:
+      immediate-stop: false
+      poll-timeout: 10s
+    properties:
+      spring.json.trusted.packages: "*"
+
+  # Development Tools
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/kotlin
+    livereload:
+      enabled: true
+
+server:
+  port: 8080
+
+# Actuator Configuration (Development)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+# Logging Configuration (Development)
+logging:
+  level:
+    root: INFO
+    com.jinjindole2.jinpro: DEBUG
+    org.springframework.r2dbc: DEBUG
+    io.r2dbc.mysql: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    org.springframework.kafka: DEBUG
+    reactor.kafka: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS}|%highlight(%-5level)|%X{txid:-}|%green(%t)|%logger|%blue(\\(%F:%L\\))|%msg%n"
+
+# Custom Application Configuration (Development)
+app:
+  security:
+    cors:
+      allowed-origins: "*"
+      allowed-methods: "*"
+      allowed-headers: "*"
+      allow-credentials: true
+  
+  promotion:
+    cache:
+      ttl: 60s # 1분 (개발용 짧은 TTL)
+      stock-ttl: 30s # 30초
+
+    rate-limit:
+      requests-per-minute: 1000 # 개발용 높은 한도
+      burst-capacity: 1500
+
+  monitoring:
+    metrics:
+      enabled: true
+    tracing:
+      enabled: true
+      zipkin:
+        base-url: http://localhost:9411

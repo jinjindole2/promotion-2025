@@ -1,6 +1,3 @@
-CREATE DATABASE IF NOT EXISTS jinpro;
-USE jinpro;
-
 create table if not exists promotion (
     id bigint not null auto_increment comment '프로모션ID',
     title varchar(100) not null unique comment '프로모션명',

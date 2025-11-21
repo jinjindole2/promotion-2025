@@ -1,1 +1,1 @@
-rootProject.name = "jinpro-test"
+rootProject.name = "daily-promotion"

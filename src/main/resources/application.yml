@@ -10,10 +10,10 @@ server:
 
 spring:
   application:
-    name: jinpro-test
+    name: daily-promotion
   r2dbc:
-    url: r2dbc:pool:mysql://localhost:3306/jinpro
-    username: jinpro
+    url: r2dbc:pool:mysql://localhost:3306/daily_promotion
+    username: daily_promotion
     password: 1234
     #initialize-schema: always
     #schema: classpath:schema.sql
@@ -30,9 +30,9 @@ spring:
       #password:
 
     mongodb:
-      uri: mongodb://localhost:27017/jinpro?replicaSet=rs0&retryWrites=true&w=majority
-      #uri: mongodb://localhost:27017/jinpro  # standalone (트랜잭션 미지원)
-      auto-index-creation: true # primary 에만 적용됨. 그 후 세컨더리에도 자동 복제됨.
+      uri: mongodb://127.0.0.1:27017/daily_promotion?replicaSet=rs0&retryWrites=true&w=majority
+      #uri: mongodb://localhost:27017/daily_promotion  # standalone (트랜잭션 미지원)
+      auto-index-creation: true
 #      bulkWrite에서 retryWrites=false로 해야 하는 이유
 #      트랜잭션 + 재시도 전략 예외사항
 
@@ -71,7 +71,7 @@ logging:
 #    activate:
 #      on-profile: test
 #  r2dbc:
-#    url: r2dbc:pool:h2:mem://localhost/jinpro
+#    url: r2dbc:pool:h2:mem://localhost/daily_promotion
 #  sql:
 #    init:
 #      mode: embedded
@@ -89,7 +89,7 @@ logging:
 #    activate:
 #      on-profile: test
 #  r2dbc:
-#    url: r2dbc:pool:h2:mem://localhost/jinpro
+#    url: r2dbc:pool:h2:mem://localhost/daily_promotion
 #  sql:
 #    init:
 #      mode: embedded

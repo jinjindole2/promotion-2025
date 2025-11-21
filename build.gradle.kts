@@ -8,7 +8,7 @@ plugins {
     id("jacoco")
 }
 
-group = "com.jinprocorp"
+group = "com.dailypromotion"
 version = "0.0.1-SNAPSHOT"
 
 java {

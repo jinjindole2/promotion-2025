@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS jinpro;
-USE jinpro;
+CREATE DATABASE IF NOT EXISTS daily_promotion;
+USE daily_promotion;
 
 create table if not exists promotion (
     id bigint not null auto_increment,

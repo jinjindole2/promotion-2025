@@ -13,7 +13,8 @@ services:
       environment:
         - TZ=Asia/Seoul
         - MYSQL_ROOT_PASSWORD=1234
-        - MYSQL_USER=jinpro
+        - MYSQL_DATABASE=daily_promotion
+        - MYSQL_USER=daily_promotion
         - MYSQL_PASSWORD=1234
 
   redis:
@@ -49,7 +50,7 @@ services:
 #    command: [ "mongod", "--replSet", "rs0", "--bind_ip_all" ]
 ##    environment:
 ##      #MONGO_INITDB_DATABASE: kakopay
-##      MONGO_INITDB_ROOT_USERNAME: jinpro
+##      MONGO_INITDB_ROOT_USERNAME: daily_promotion
 ##      MONGO_INITDB_ROOT_PASSWORD: 1234
 #    volumes:
 #      - ./data/mongo1:/data/db
@@ -64,7 +65,7 @@ services:
 #    command: [ "mongod", "--replSet", "rs0", "--bind_ip_all" ]
 ##    environment:
 ##      #MONGO_INITDB_DATABASE: kakopay
-##      MONGO_INITDB_ROOT_USERNAME: jinpro
+##      MONGO_INITDB_ROOT_USERNAME: daily_promotion
 ##      MONGO_INITDB_ROOT_PASSWORD: 1234
 #    volumes:
 #      - ./data/mongo2:/data/db
@@ -79,7 +80,7 @@ services:
 #    command: [ "mongod", "--replSet", "rs0", "--bind_ip_all" ]
 ##    environment:
 ##      #MONGO_INITDB_DATABASE: kakopay
-##      MONGO_INITDB_ROOT_USERNAME: jinpro
+##      MONGO_INITDB_ROOT_USERNAME: daily_promotion
 ##      MONGO_INITDB_ROOT_PASSWORD: 1234
 #    volumes:
 #      - ./data/mongo3:/data/db
@@ -120,10 +121,30 @@ services:
     restart: always
     ports:
       - "27017:27017"
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     environment:
-      MONGO_INITDB_DATABASE: jinpro
+      MONGO_INITDB_DATABASE: daily_promotion
     volumes:
       - mongo-data:/data/db
+
+  mongo-setup:
+    image: mongo:6.0
+    depends_on:
+      - mongo
+    network_mode: host
+    entrypoint: >
+      bash -c "
+        sleep 5;
+        echo 'Configuring Replica Set...';
+        mongosh --host 127.0.0.1:27017 <<EOF
+        rs.initiate({
+          _id: 'rs0',
+          members: [
+            { _id: 0, host: '127.0.0.1:27017' }
+          ]
+        });
+        EOF
+      "
 
 volumes:
   mongo-data:

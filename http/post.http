@@ -7,7 +7,7 @@ Content-Type: application/json
   "rewardAmount" : 2000,
   "limitJoinCount" : 10,
   "content" : "프로모션1의 내용입니다.",
-  "imageUrl" : "https://jinpro.com",
+  "imageUrl" : "https://dailypromotion.com",
   "startDate" : "2024-08-08",
   "endDate" : "2024-08-20"
 }

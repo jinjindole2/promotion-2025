@@ -2,12 +2,12 @@ spring:
   profiles:
     active: dev
   application:
-    name: jinpro-test-dev
+    name: daily-promotion-dev
 
   # Database Configuration (Development)
   r2dbc:
-    url: r2dbc:mysql://localhost:3306/jinpro?serverTimezone=Asia/Seoul
-    username: jinpro
+    url: r2dbc:mysql://localhost:3306/daily_promotion?serverTimezone=Asia/Seoul
+    username: daily_promotion
     password: 1234
     pool:
       enabled: true
@@ -24,7 +24,7 @@ spring:
   # MongoDB Configuration (Development)
   data:
     mongodb:
-      uri: mongodb://localhost:27017/jinpro
+      uri: mongodb://localhost:27017/daily_promotion
       auto-index-creation: true
 
     # Redis Configuration (Development)
@@ -42,7 +42,7 @@ spring:
       acks: 1
       retries: 3
     consumer:
-      group-id: jinpro-promotion-service-dev
+      group-id: daily-promotion-promotion-service-dev
       auto-offset-reset: earliest
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
     listener:
@@ -76,7 +76,7 @@ management:
 logging:
   level:
     root: INFO
-    com.jinjindole2.jinpro: DEBUG
+    com.jinjindole2.dailypromotion: DEBUG
     org.springframework.r2dbc: DEBUG
     io.r2dbc.mysql: DEBUG
     org.springframework.data.r2dbc: DEBUG

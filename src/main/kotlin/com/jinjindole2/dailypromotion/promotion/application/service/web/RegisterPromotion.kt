@@ -29,15 +29,15 @@ class RegisterPromotion (
     @Transactional("transactionManager")  // MySQL/R2DBC 트랜잭션 매니저
     override suspend fun registerPromotion(adv: Promotion): Promotion {
         logger.info("[프로모션 추가 STEP 1] DB에 저장")
-        val registeredAdv = persistPort.registerPromotion(adv) ?: throw DuplicatedTitleException()
-
-        logger.info("[프로모션 추가 STEP 2] 동기화 (Redis, MongoDB)")
-        try {
-            eventPort.publishRegisterPromotionEvent(RegisterPromotionEvent.fromPromotion(registeredAdv, MDC.get("txid")))
-        }catch (e:Exception) {
-            // TODO 로그나 잘 남기자
-            logger.error(e.stackTraceToString())
+        val registeredAdv = try {
+            persistPort.registerPromotion(adv) !!
+        } catch (e: DuplicateKeyException) {
+            throw DuplicatedTitleException()
         }
+
+        // TODO 이벤트 발행 실패 시 DB 롤백하는게 맞는건지. 아니면 추후 동기화 로직을 추가하는게 맞는건지.
+        logger.info("[프로모션 추가 STEP 2] 동기화 (Redis, MongoDB)")
+        eventPort.publishRegisterPromotionEvent(RegisterPromotionEvent.fromPromotion(registeredAdv, MDC.get("txid")))
 
         return registeredAdv;
     }
@@ -67,6 +67,7 @@ class RegisterPromotion (
             })
         }
 
+        // TODO try catch 보다 runCatching 이 더 일반적인걸까?
         logger.info("[참여조건 추가 STEP 2] 참여조건 추가")
         val savedPromoJoinType = kotlin.runCatching {
             persistPort.addJoinType(promoJoinType)!!
@@ -76,12 +77,8 @@ class RegisterPromotion (
             } else it
         }
 
+        // TODO 이벤트 발행 실패 시 DB 롤백하는게 맞는건지. 아니면 추후 동기화 로직을 추가하는게 맞는건지.
         logger.info("[참여조건 추가 STEP 2] 동기화 (Redis, MongoDB)")
-        try {
-            eventPort.publishAddPromotionJoinTypeEvent(AddPromotionJoinTypeEvent.fromPromotionJoinType(promoJoinType, MDC.get("txid")))
-        } catch (e:Exception) {
-            // TODO 로그나 잘 남기자
-            logger.error(e.stackTraceToString())
-        }
+        eventPort.publishAddPromotionJoinTypeEvent(AddPromotionJoinTypeEvent.fromPromotionJoinType(promoJoinType, MDC.get("txid")))
     }
 }

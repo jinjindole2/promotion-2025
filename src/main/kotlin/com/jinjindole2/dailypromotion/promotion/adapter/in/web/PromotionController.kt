@@ -17,6 +17,7 @@ import jakarta.validation.constraints.PositiveOrZero
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -42,13 +43,14 @@ class PromotionController (
     // 1. 프로모션 등록 API
     @Operation(summary = "프로모션 등록 API", description = "시스템에 프로모션를 등록합니다.")
     @PostMapping("/")
-    suspend fun regist(@RequestHeader("Host") hostURI: String,
+    suspend fun regist(request: ServerHttpRequest,
                        @Valid @RequestBody @Parameter(description = "등록할 프로모션 정보") req: RegisterPromotionReqDto
     ) : ResponseEntity<Any> {
         try {
             // TODO 유효성 검사 : 완료일자가 시작일자보다 먼저면 안됨
             val registeredPromotion = registerPromotionUseCase.registerPromotion(webMapper.registReqToEntity(req))
-            return ResponseEntity.created(URI.create(hostURI + "/" + registeredPromotion.id)).build()
+            val locationUri = URI.create("${request.uri}${registeredPromotion.id}")
+            return ResponseEntity.created(locationUri).build()
         } catch (e: DuplicatedTitleException) {
             throw CommonPromotionHttpException(ErrorCodes.DUPLICATED_TITLE, HttpStatus.CONFLICT)
         } catch (e: InvalidInputException) {
@@ -58,13 +60,14 @@ class PromotionController (
 
     // 1-1. 프로모션 참여 제한타입
     @PostMapping("/join-type")
-    suspend fun addJoinType(@RequestHeader("Host") hostURI: String,
+    suspend fun addJoinType(request: ServerHttpRequest,
                             @Valid @RequestBody req: AddPromotionJoinTypeReqDto
     ) : ResponseEntity<Any> {
         try {
             // TODO 유효성 검사 : 선행, 후행이 같으면 안됨
             registerPromotionUseCase.addJoinType(webMapper.addJoinTypeReqToEntity(req))
-            return ResponseEntity.created(URI.create(hostURI + "/" + req.promoId)).build()
+            val locationUri = URI.create("${request.uri}/../${req.promoId}")
+            return ResponseEntity.created(locationUri).build()
         } catch (e: PromotionNotFoundException) {
             throw CommonPromotionHttpException(ErrorCodes.PROMOTION_NOT_FOUND, HttpStatus.NOT_FOUND)
         } catch (e: LeadingPromotionNotFoundException) {
@@ -87,12 +90,13 @@ class PromotionController (
 
     // 3. 고객 프로모션 참여 API
     @PostMapping("/join")
-    suspend fun join(@RequestHeader("Host") hostURI: String,
+    suspend fun join(request: ServerHttpRequest,
                      @Valid @RequestBody req: JoinPromotionReqDto
     ) : ResponseEntity<Any> {
         try {
             joinPromotionUseCase.joinPromotion(req.promoId, req.userId, LocalDate.now())
-            return ResponseEntity.created(URI.create(hostURI + "/" + req.promoId + "/user/" + req.userId + "/join")).build()
+            val locationUri = URI.create("${request.uri}/../${req.promoId}/user/${req.userId}/join")
+            return ResponseEntity.created(locationUri).build()
         } catch (e: PromotionNotFoundException) {
             throw CommonPromotionHttpException(ErrorCodes.PROMOTION_NOT_FOUND, HttpStatus.NOT_FOUND)
         } catch (e: NotJoinableException) {

@@ -1,110 +1,68 @@
-# 일일 프로모션 서비스
+# 마케팅 프로모션 플랫폼
 
-## 1. 시스템 설계
+## 1. 프로젝트 개요
+- 고객에게 기업들의 마케팅 프로모션을 제공하는 플랫폼 입니다.
+- 고객은 프로모션을 참여 / 취소 / 완료할 수 있고, 프로모션을 완료하면 리워드를 지급받습니다.
 
-![시스템구성도(프로모션 등록).png](image/시스템구성도(프로모션_등록).png)
+## 2. 프로젝트 기술 스택
+- Kotlin
+- Spring Boot
+- Spring Data JPA
+- MySql
+- Kafka
+- Redis
+- Spring Batch
+  - 일 집계
+  - 리워드 정산
+  - 리워드 일괄지급 or 실패건 일괄지급
+  - 리워드 지급상태 확인
 
+## 3. 시스템 구성도
+
+### 0) TODO
+- 프로모션 API 이외에도 고객 API, 고객사 API, 리워드 API, API 게이트웨이 등도 추가할지
+- 최종적으로 운영환경(클라우드)에 적용할지
+
+### 1) 전체 구성도
+
+### 2) 프로모션 등록
 ![시스템구성도(프로모션 참여).png](image/시스템구성도(프로모션_참여).png)
 
-대규모 프로모션 참여 및 조회에 중점으로 두고 설계했습니다. 특징은 아래와 같습니다.     
+### 3) 프로모션 참여
+![시스템구성도(프로모션 등록).png](image/시스템구성도(프로모션_등록).png)
 
-### 1) 비동기 논블록킹 API
-- Kotlin Coroutine, R2DBC 등을 이용한 비동기 논블록킹 API로 많은 요청을 처리할 수 있습니다.
+### 4) 프로모션 등록
+작성 중
 
-### 2) 레디스를 이용한 프로모션 참여
-- 분산락을 이용해, 중복참여를 방지했습니다.
-- 레디스에 참여횟수, 참여기간, 참여조건, 참여이력 등을 저장해, 레디스만으로 프로모션 참여를 처리할 수 있게 설계했습니다.
-- 프로모션 참여를 Lua Script 를 이용해 원자적이고 빠르고 정확하게 처리했습니다.
+## 4. Use Case
 
-```lua
--- ***** 프로모션 참여 Lua Script *****
+### 1) 관리자: 프로모션 등록 / 조회 / 수정 / 삭제
 
--- 재고확인
-local stock = tonumber(redis.call('get', KEYS[1]))
-if not stock or stock == 0 then
-    return -1
-end
+- 관리자는 프로모션을 등록 / 조회 / 수정 / 삭제 할수 있습니다.
+- 프로모션에 참여정책을 등록할수 있습니다. 참여정책은 중복해서 선택 가능합니다.
+  1. 프로모션은 참여인원 제한이 존재합니다. (기본) 
+  2. 고객은 같은 프로모션을 하루에 한번만 참여할 수 었습니다. (기본)
+  3. 고객은 같은 프로모션을 최대 N번 참여할수 있습니다. (선택)
+  4. 선행 프로모션을 먼저 참여해야만 참여할 수 있습니다. (선택)
+- 프로모션은 완료정책이 존재합니다. (미정)
+  1. 프로모션을 일정기간 내에 완료해야합니다.
 
--- 참여조건 목록 조회
-local joinTypeList = redis.call("SMEMBERS", KEYS[2])
-for i = 1, #joinTypeList do
+### 2) 고객: 프로모션 조회
+- 고객은 프로모션 목록을 조회할 수 있습니다. (최대 10개씩 페이징 처리)
+- 고객이 참여 가능할 프로모션만 조회됩니다.
+- 프로모션은 리워드 금액가 큰 순서로 표기됩니다.
 
-    -- 참여조건은 "프로모션ID:참여조건타입:값" 으로 이루어져있습니다. 이를 파싱해, 참여조건타입에 맞춰 값을 사용합니다.
-    local item = joinTypeList[i]
-    local col1 = string.find(item, ":")
-    local col2 = string.find(item, ":", col1 + 1)
-    if not col1 or not col2 then
-        return -2
-    end
+### 3) 고객: 프로모션 참여
+- 고객은 프로모션을 선택해 참여합니다.
+- 고객이 참여하면 프로모션의 참여인원수가 증가합니다.
+- 프로모션 참여는 대규모트래픽이 발생할 수 있습니다.
 
-    local joinType = string.sub(item, col1 + 1, col2 - 1)
-    local value = string.sub(item, col2 + 1)
+### 4) 고객: 프로모션 참여
+- 고객은 참여한 프로모션에 대해 참여취소할 수 있습니다.
+- 참여 취소할 경우, 프로모션
 
-    -- 고객 참여횟수 제한
-    if "N_DUP_LIMIT" == joinType then
-        if redis.call("SCARD", KEYS[3]) == tonumber(value) then
-            return -2
-        end
-    end
+### 4) 고객: 프로모션 완료
+- 프로모션이 완료되면 고객에게 리워드가 지급됩니다.
 
-    -- 특정프로모션 참여이력 조회
-    if "LEADING" == joinType then
-        local key = "advUser:promoId:" .. value .. "userId" .. ARGV[3]
-        if redis.call("SCARD", key) == 0 then
-            return -2
-        end
-    end
-end
-
--- 금일 참여이력 있는지 확인
-if redis.call('SISMEMBER', KEYS[3], ARGV[1]) == 1 then
-    return -3
-end
-
--- 참여이력 저장
-redis.call('SADD', KEYS[3], ARGV[1])
-
--- 재고 차감
-redis.call('DECRBY', KEYS[1], 1)
-return 0
-```
-
-### 3) 카프카를 이용한 비동기 포인트 적립 API 요청 
-- 적립 API 응답과 무관하게, 프로모션 참여를 완료하기 위해 비동기로 처리했습니다. 
-- 적립요청을 카프카로 전달하고, 리스너에서 적립 API 를 호출하도록 설계했습니다.
-
-### 4) 배치(스케쥴러)를 이용한 레디스 - DB 동기화
-- 레디스만으로 프로모션 참여가 가능하지만, DB 프로모션원장을 이용하는 서비스 (ex. 프로모션조회 API) 를 위해 동기화를 진행합니다.
-- 트래픽이 대규모로 들어올것을 가정해, 카프카를 이용해 요청건마다 동기화가 아닌, 배치를 이용해 주기적으로 동기화를 진행했습니다. (30초 단위)
-
-### + 추가 개선방안
-- 현재는 기동에 용이하기 위해, API 내 카프카 리스너와 스케쥴러를 개발했습니다. 안정성을 위해 API, 리스너, 배치를 분리합니다.
-- 현재 시스템에서 중요한 레디스, 카프카, DB에 대해 클러스터를 구성해 장애에 대응합니다.
-
-
-```json
-{
-  "_id": ObjectId("..."),
-  "id": "1",
-  "title": "프로모션 A",
-  "rewardAmount": 500,
-  "leftJoinCount": 12,
-  "limitJoinCount": 50,
-  "content": "친구 초대하면 적립!",
-  "imageUrl": "https://image.example.com/adv-a.jpg",
-  "startDate": "2025-06-20",
-  "endDate": "2025-06-30",
-  "joinTypes": [
-    {
-      "joinType": "N_DUP_LIMIT",
-      "limitDupJoinCount": 3
-    },
-    {
-      "joinType": "LEADING",
-      "leadPromoId": ["2", "3", "4"]
-    }
-  ],
-  "createdDate": ISODate("2025-06-21T00:00:00Z"),
-  "lastModifiedDate": ISODate("2025-06-21T01:00:00Z")
-}
-```
+## 5. ERD
+https://app.diagrams.net/#G1HQSQKTQUeqworksaMVQbKqjqfPWWEqP_#%7B%22pageId%22%3A%22l2j7YGflX5Q0iSekINy0%22%7D
